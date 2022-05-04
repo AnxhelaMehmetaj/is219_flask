@@ -3,12 +3,14 @@ import json
 import logging
 import os
 
-from flask import Blueprint, render_template, abort, url_for, current_app, jsonify
+from flask import Blueprint, render_template, abort, url_for, current_app, jsonify, flash
 from flask_login import current_user, login_required
 from jinja2 import TemplateNotFound
 
+from app.auth import admin_required
 from app.db import db
 from app.db.models import Location
+from app.map.forms import create_location_form, create_location_form, edit_location_form
 from app.songs.forms import csv_upload
 from werkzeug.utils import secure_filename, redirect
 from flask import Response
@@ -30,13 +32,67 @@ def browse_locations(page):
 
 @map.route('/locations_datatables/', methods=['GET'])
 def browse_locations_datatables():
-
     data = Location.query.all()
-
+    add_url = url_for('map.new_location')
+    edit_url = ('map.edit_location', [('loc_id', ':id')])
+    delete_url = ('map.delete_location', [('loc_id', ':id')])
     try:
-        return render_template('browse_locations_datatables.html',data=data)
+        return render_template('browse_locations_datatables.html',
+                               data=data,
+                               Location=Location,
+                               new_url=add_url,
+                               edit_url=edit_url,
+                               delete_url=delete_url)
     except TemplateNotFound:
         abort(404)
+
+@map.route('/locations/new', methods=['GET', 'POST'])
+@login_required
+def new_location():
+    form = create_location_form()
+    if form.validate_on_submit():
+        title = Location.query.filter_by(title=form.title.data).first()
+        if title is None:
+            location = Location(title=form.title.data, longitude=form.longitude.data,
+                                latitude=form.latitude.data, population=form.population.data)
+            db.session.add(location)
+            db.session.commit()
+            flash('Congratulations, you just created a location', 'success')
+            return redirect(url_for('map.browse_locations_datatables'))
+        else:
+            flash('new location')
+            return redirect(url_for('map.browse_locations_datatables'))
+    return render_template('location_add.html', form=form)
+
+@map.route('/locations/<int:loc_id>/delete' , methods=['POST'])
+@login_required
+@admin_required
+def delete_location(loc_id):
+    loc = Location.query.get(loc_id)
+    db.session.delete(loc)
+    db.session.commit()
+    flash('Location Deleted', 'success')
+    return redirect(url_for('map.browse_locations_datatables'))
+
+
+
+
+@map.route('/locations/<int:loc_id>/edit' ,methods=['POST', 'GET'])
+@login_required
+@admin_required
+def edit_location(loc_id):
+    loc = Location.query.get(loc_id)
+    form = edit_location_form(obj=loc)
+    if form.validate_on_submit():
+        loc.population = form.population.data
+        loc.title = form.title.data
+        db.session.add(loc)
+        db.session.commit()
+        flash("Location Edited Successfully", "success")
+        current_app.logger.info("edited a location")
+        return redirect(url_for("map.browse_locations_datatables"))
+    return render_template("location_edit.html", form=form)
+
 
 @map.route('/api/locations/', methods=['GET'])
 def api_locations():

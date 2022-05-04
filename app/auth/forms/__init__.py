@@ -45,6 +45,8 @@ class create_user_form(FlaskForm):
     submit = SubmitField()
 
 
+
+
 class profile_form(FlaskForm):
     about = TextAreaField('About', [validators.length(min=6, max=300)],
                           description="Please add information about yourself")
