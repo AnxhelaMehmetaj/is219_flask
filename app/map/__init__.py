@@ -75,8 +75,6 @@ def delete_location(loc_id):
     return redirect(url_for('map.browse_locations_datatables'))
 
 
-
-
 @map.route('/locations/<int:loc_id>/edit' ,methods=['POST', 'GET'])
 @login_required
 @admin_required
