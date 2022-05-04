@@ -9,7 +9,7 @@ def test_adding_user(application):
     with application.app_context():
         assert db.session.query(User).count() == 0
         assert db.session.query(Song).count() == 0
-        #showing how to add a record
+        '''#showing how to add a record
         #create a record
         user = User('sample@sample.com', 'testtest', 1)
         #add it to get ready to be committed
@@ -39,4 +39,4 @@ def test_adding_user(application):
         #checking cascade delete
         db.session.delete(user)
         assert db.session.query(User).count() == 0
-        assert db.session.query(Song).count() == 0
+        assert db.session.query(Song).count() == 0'''
